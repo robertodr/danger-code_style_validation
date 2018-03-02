@@ -19,6 +19,12 @@ module Danger
   #          code_style_validation.check validator: 'yapf',
   #                                      file_extensions: ['.py']
   #
+  # @example Ensure that a specific style is set
+  #
+  #          code_style_validation.check validator: 'yapf',
+  #                                      style: '--style pep8'
+  #                                      file_extensions: ['.py']
+  #
   # @example Ensure that changes do not violate code style, ignoring Pods directory
   #
   #          code_style_validation.check ignore_file_patterns: [/^Pods\//]
@@ -34,9 +40,10 @@ module Danger
     #
     # @return [void]
     def check(config = {})
-      defaults = {validator: 'clang-format', file_extensions: ['.h', '.m', '.mm'], ignore_file_patterns: []}
+      defaults = {validator: 'clang-format', file_extensions: ['.h', '.m', '.mm'], ignore_file_patterns: [], style: ''}
       config = defaults.merge(config)
       validator = *config[:validator]
+      style = *config[:style]
       file_extensions = [*config[:file_extensions]]
       ignore_file_patterns = [*config[:ignore_file_patterns]]
 
@@ -53,7 +60,7 @@ module Danger
       end
 
       changes = get_changes(diff, file_extensions, ignore_file_patterns)
-      offending_files, patches = resolve_changes(validator, changes)
+      offending_files, patches = resolve_changes(validator, style, changes)
 
       message = ''
       unless offending_files.empty?
@@ -153,7 +160,7 @@ module Danger
       markup_patch
     end
 
-    def resolve_changes(validator, changes)
+    def resolve_changes(validator, style, changes)
       # Parse all patches from diff string
 
       offending_files = []
@@ -173,7 +180,7 @@ module Danger
         end
 
         changed_lines_command = changed_lines_command_array.join(' ')
-        format_command_array = [validator, changed_lines_command, file_name]
+        format_command_array = [validator, style, changed_lines_command, file_name]
 
         # validator command for formatting JUST changed lines
         formatted = `#{format_command_array.join(' ')}`
